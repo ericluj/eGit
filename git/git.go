@@ -21,12 +21,8 @@ func Cmd(name string, args ...string) (string, error) {
 	c := exec.Command(name, args...)
 	c.Dir = config.ProjectPath
 	c.Env = []string{"FILTER_BRANCH_SQUELCH_WARNING=1"}
-	out, err := c.Output()
-	if err != nil {
-		return "", err
-	}
-
-	return string(out), nil
+	out, err := c.CombinedOutput()
+	return string(out), err
 }
 
 func getValue(str string) string {
@@ -74,6 +70,11 @@ func GitLog() ([]*Commit, error) {
 		if len(infos) < 6 {
 			continue
 		}
+
+		if len(infos) == 7 { // 包含merge，去除掉
+			infos = append(infos[:1], infos[2:]...)
+		}
+
 		commit := &Commit{
 			Hash:       getValue(infos[0]),
 			Author:     getValue(infos[1]),
@@ -88,8 +89,28 @@ func GitLog() ([]*Commit, error) {
 	return commits, nil
 }
 
+func EditAllCommit(name, email string) error {
+	cmdStr := fmt.Sprintf(`
+	CORRECT_NAME="%s"
+	CORRECT_EMAIL="%s"
+	
+	export GIT_COMMITTER_NAME="$CORRECT_NAME"
+	export GIT_COMMITTER_EMAIL="$CORRECT_EMAIL"
+	export GIT_AUTHOR_NAME="$CORRECT_NAME"
+	export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
+	`, name, email)
+
+	out, err := Cmd("git", "filter-branch", "-f", "--env-filter", cmdStr)
+	if err != nil {
+		fmt.Printf("out: %v, error: %v\n", out, err)
+		return err
+	}
+
+	return nil
+}
+
 func EditCommit(hash, date, name, email string) error {
-	cmdStr := fmt.Sprintf(`'
+	cmdStr := fmt.Sprintf(`
 	CORRECT_DATE="%s"
 	CORRECT_NAME="%s"
 	CORRECT_EMAIL="%s"
@@ -103,9 +124,9 @@ func EditCommit(hash, date, name, email string) error {
 		export GIT_AUTHOR_NAME="$CORRECT_NAME"
 		export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
 	fi
-	'`, date, name, email, hash)
+	`, date, name, email, hash)
 
-	out, err := Cmd("git", "filter-branch", "--env-filter", cmdStr)
+	out, err := Cmd("git", "filter-branch", "-f", "--env-filter", cmdStr)
 	if err != nil {
 		fmt.Printf("out: %v, error: %v\n", out, err)
 		return err

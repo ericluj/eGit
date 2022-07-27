@@ -11,16 +11,9 @@ import (
 func main() {
 	st := time.Now().Unix()
 
-	commits, err := git.GitLog()
+	err := git.EditAllCommit(config.Author, config.Email)
 	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-
-	for _, v := range commits {
-		err := git.EditCommit(v.Hash, v.AuthorDate, config.Author, config.Email)
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
+		log.Fatalf("EditAllCommit error: %v", err)
 	}
 
 	ed := time.Now().Unix()
