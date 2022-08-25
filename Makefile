@@ -3,3 +3,6 @@ email:
 
 night:
 	go run apps/night/main.go
+
+comment:
+	go run apps/comment/main.go

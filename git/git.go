@@ -134,3 +134,20 @@ func EditCommit(hash, date, name, email string) error {
 
 	return nil
 }
+
+func EditComment(hash, comment string) error {
+	cmdStr := fmt.Sprintf(`
+	if [ "$GIT_COMMIT" = "%s" ]
+	then
+		echo '%s'
+	fi
+	`, hash, comment)
+
+	out, err := Cmd("git", "filter-branch", "-f", "--msg-filter", cmdStr)
+	if err != nil {
+		fmt.Printf("out: %v, error: %v\n", out, err)
+		return err
+	}
+
+	return nil
+}
